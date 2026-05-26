@@ -3,16 +3,9 @@ import time
 import os
 
 def json_write(description, id, status, createdAt, updatedAt):
-    #with open("data.json", mode="w", encoding="utf-8") as write_file:
-    #    data = {"id": id,
-    #            "description": description,
-    #            "status": status,
-    #            "createdAt": createdAt,
-    #            "updatedAt": updatedAt}
-    #    json.dump(data, write_file)
     filename = "data.json"
 
-    if os.path.exists(filename) and os.path.getsize(filename):
+    if os.path.exists(filename) and os.path.getsize(filename) > 0:
         with open(filename, "r", encoding="utf-8") as read_file:
             data = json.load(read_file)
     else:
@@ -32,19 +25,28 @@ def json_write(description, id, status, createdAt, updatedAt):
         json.dump(data, write_file, indent=4)
 
 def id_chooser():
-    with open("data.json", mode="r", encoding="utf-8") as read_file:
-        data = json.load(read_file)
-    id = len(data) + 1
-    return id
+    filename = "data.json"
+
+    if not os.path.exists(filename) or os.path.getsize(filename) == 0:
+        return 1
+    with open(filename, "r", encoding="utf-8") as read_file:
+        try:
+            data = json.load(read_file)
+            if not data:
+                return 1
+            all_ids = [task["id"] for task in data]
+            return max(all_ids) + 1
+        except json.JSONDecodeError:
+            return 1
 
 print('Welcome to the TaskTrackerCLI. To find available commands type task-cli help')
-print(time.ctime())
 while (True):
     userInput = str(input("> "))
     if "task-cli" not in userInput:
         print("Invalid Command")
         print("Type task-cli help for more commands")
         continue
+    userInput = userInput.replace("task-cli ", "")
     if "help" in userInput:
         print("TaskCLI Help")
         print('add - Used to add a task, ex: task-cli add "Buy Groceries"')
@@ -57,8 +59,10 @@ while (True):
         print('list todo - Used to list all tasks that are not started yet')
         print('list in-progress - Used to list all in progress tasks')
     if "add" in userInput:
-        userInput = userInput.replace("task-cli ", "")
         userInput = userInput.replace("add ", "")
         taskId = id_chooser()
         json_write(userInput, taskId, "todo", time.ctime(), time.ctime())
         print("Task added successfully (ID: " + str(taskId) + ")")
+    if "update" in userInput:
+        userInput = userInput.replace("update ", "")
+
