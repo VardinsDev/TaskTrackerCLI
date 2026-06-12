@@ -31,13 +31,13 @@ def json_write(description, id, status, createdAt, updatedAt):
 
 def deleteData(id):
     data = loadData()
-    i = 0
-    for task in data:
-        if task["id"] == id:
-            data.pop(i)
-            print("Data Deleted!")
-        i += 1
-    writeData(data)
+    original_count = len(data)
+    data = [task for task in data if task["id"] != id]
+    if len(data) < original_count:
+        writeData(data)
+        print(f"Task with ID {id} successfully deleted!")
+    else:
+        print(f"Error: Task with ID {id} not found.")
 
 def updateData(id, description, updatedTime):
     filename = "data.json"
@@ -47,9 +47,7 @@ def updateData(id, description, updatedTime):
             task["updatedAt"] = updatedTime
             task["description"] = description
             print("Change successful!")
-
-    with open(filename, "w", encoding="utf-8") as write_file:
-        json.dump(data, write_file, indent=4)
+    writeData(data)
 
 def id_chooser():
     filename = "data.json"
@@ -65,16 +63,35 @@ def id_chooser():
         except json.JSONDecodeError:
             return 1
 
-def listData():
+def listData(status=None):
     data = loadData()
     for task in data:
+        if status and task["status"].lower() != status.lower():
+            continue
+
         print("")
-        print(f"[ID: {task["id"]}] {task["description"]}")
-        print(f"    Status: {task["status"]}")
-        print(f"    Created: {task["createdAt"]}")
-        print(f"    Updated: {task["updatedAt"]}")
+        print(f"[ID: {task['id']}] {task['description']}")
+        print(f"    Status: {task['status']}")
+        print(f"    Created: {task['createdAt']}")
+        print(f"    Updated: {task['updatedAt']}")
         print("")
         print("--------------------------------------------------")
+
+def markInProgress(id):
+    data = loadData()
+    for task in data:
+        if task["id"] == id:
+            task["status"] = "In-Progress"
+            task["updatedAt"] = time.ctime()
+    writeData(data)
+
+def markDone(id):
+    data = loadData()
+    for task in data:
+        if task["id"] == id:
+            task["status"] = "Done"
+            task["updatedAt"] = time.ctime()
+    writeData(data)
 
 print('Welcome to the TaskTrackerCLI. To find available commands type task-cli help')
 while (True):
@@ -101,7 +118,7 @@ while (True):
         case ["add", *description]:
             description = " ".join(description)
             taskId = id_chooser()
-            json_write(description, taskId, "todo", time.ctime(), time.ctime())
+            json_write(description, taskId, "Todo", time.ctime(), time.ctime())
             print(f"Task added successfully (ID: {taskId})")
         case ["update", task_id, *description]:
             if not description:
@@ -112,9 +129,19 @@ while (True):
                 updateData(clean_id, description, time.ctime())
         case ["list"]:
             listData()
+        case ["list", status]:
+            listData(status)
         case ["delete", task_id]:
             clean_id = int(task_id)
             deleteData(clean_id)
+        case ["mark-in-progress", task_id]:
+            clean_id = int(task_id)
+            markInProgress(clean_id)
+            print(f"[ID: {clean_id}] Status: In Progress")
+        case ["mark-done", task_id]:
+            clean_id = int(task_id)
+            markDone(clean_id)
+            print(f"[ID: {clean_id}] Status: Done")
         case _:
             print("TaskCLI Help")
             print('add - Used to add a task, ex: task-cli add Buy Groceries')
