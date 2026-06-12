@@ -2,21 +2,8 @@ import json
 import time
 import os
 
-def json_write(description, id, status, createdAt, updatedAt):
+def writeData(data):
     filename = "data.json"
-
-    data = loadData()
-
-    new_data = {
-        "id": id,
-        "description": description,
-        "status": status,
-        "createdAt": createdAt,
-        "updatedAt": updatedAt
-    }
-
-    data.append(new_data)
-
     with open(filename, "w", encoding="utf-8") as write_file:
         json.dump(data, write_file, indent=4)
 
@@ -27,14 +14,34 @@ def loadData():
             data = json.load(read_file)
     else:
         data = []
-
     return data
+
+def json_write(description, id, status, createdAt, updatedAt):
+    filename = "data.json"
+    data = loadData()
+    new_data = {
+        "id": id,
+        "description": description,
+        "status": status,
+        "createdAt": createdAt,
+        "updatedAt": updatedAt
+    }
+    data.append(new_data)
+    writeData(data)
+
+def deleteData(id):
+    data = loadData()
+    i = 0
+    for task in data:
+        if task["id"] == id:
+            data.pop(i)
+            print("Data Deleted!")
+        i += 1
+    writeData(data)
 
 def updateData(id, description, updatedTime):
     filename = "data.json"
-
     data = loadData()
-
     for task in data:
         if task["id"] == id:
             task["updatedAt"] = updatedTime
@@ -46,7 +53,6 @@ def updateData(id, description, updatedTime):
 
 def id_chooser():
     filename = "data.json"
-
     if not os.path.exists(filename) or os.path.getsize(filename) == 0:
         return 1
     with open(filename, "r", encoding="utf-8") as read_file:
@@ -59,6 +65,17 @@ def id_chooser():
         except json.JSONDecodeError:
             return 1
 
+def listData():
+    data = loadData()
+    for task in data:
+        print("")
+        print(f"[ID: {task["id"]}] {task["description"]}")
+        print(f"    Status: {task["status"]}")
+        print(f"    Created: {task["createdAt"]}")
+        print(f"    Updated: {task["updatedAt"]}")
+        print("")
+        print("--------------------------------------------------")
+
 print('Welcome to the TaskTrackerCLI. To find available commands type task-cli help')
 while (True):
     userInput = str(input("> "))
@@ -69,27 +86,44 @@ while (True):
     userInput = userInput.replace("task-cli ", "")
     userInput = userInput.split()
     if not userInput: continue
-    if "help" == userInput[0]:
-        print("TaskCLI Help")
-        print('add - Used to add a task, ex: task-cli add "Buy Groceries"')
-        print('update - Used to update a task based on task id, ex: task-cli update 1 "Buy groceries and cook dinner')
-        print('delete - Used to delete a task besed on task id, ex: task-cli delete 1')
-        print('mark-in-progress - Used to show that you have started a task, ex: task-cli mark-in-progress 1')
-        print('mark-done - Used to show that you have finished a task, ex: task-cli mark-done 1')
-        print('list - Used to list all tasks')
-        print('list done - Used to list all finished tasks')
-        print('list todo - Used to list all tasks that are not started yet')
-        print('list in-progress - Used to list all in progress tasks')
-    elif "add" == userInput[0]:
-        userInput.pop(0)
-        userInput = " ".join(userInput)
-        taskId = id_chooser()
-        json_write(userInput, taskId, "todo", time.ctime(), time.ctime())
-        print(f"Task added successfully (ID: {taskId})")
-    elif "update" == userInput[0]:
-        userInput.pop(0)
-        id = int(userInput[0])
-        userInput.pop(0)
-        userInput = " ".join(userInput)
-        updateData(id, userInput, time.ctime())
+    match userInput:
+        case ["help"]:
+            print("TaskCLI Help")
+            print('add - Used to add a task, ex: task-cli add "Buy Groceries"')
+            print('update - Used to update a task based on task id, ex: task-cli update 1 "Buy groceries and cook dinner')
+            print('delete - Used to delete a task besed on task id, ex: task-cli delete 1')
+            print('mark-in-progress - Used to show that you have started a task, ex: task-cli mark-in-progress 1')
+            print('mark-done - Used to show that you have finished a task, ex: task-cli mark-done 1')
+            print('list - Used to list all tasks')
+            print('list done - Used to list all finished tasks')
+            print('list todo - Used to list all tasks that are not started yet')
+            print('list in-progress - Used to list all in progress tasks')
+        case ["add", *description]:
+            description = " ".join(description)
+            taskId = id_chooser()
+            json_write(description, taskId, "todo", time.ctime(), time.ctime())
+            print(f"Task added successfully (ID: {taskId})")
+        case ["update", task_id, *description]:
+            if not description:
+                print("Please provide a description argument for example: task-cli update 1 take the dogs out")
+            else:
+                clean_id = int(task_id)
+                description = " ".join(description)
+                updateData(clean_id, description, time.ctime())
+        case ["list"]:
+            listData()
+        case ["delete", task_id]:
+            clean_id = int(task_id)
+            deleteData(clean_id)
+        case _:
+            print("TaskCLI Help")
+            print('add - Used to add a task, ex: task-cli add Buy Groceries')
+            print('update - Used to update a task based on task id, ex: task-cli update 1 Buy groceries and cook dinner')
+            print('delete - Used to delete a task besed on task id, ex: task-cli delete 1')
+            print('mark-in-progress - Used to show that you have started a task, ex: task-cli mark-in-progress 1')
+            print('mark-done - Used to show that you have finished a task, ex: task-cli mark-done 1')
+            print('list - Used to list all tasks')
+            print('list done - Used to list all finished tasks')
+            print('list todo - Used to list all tasks that are not started yet')
+            print('list in-progress - Used to list all in progress tasks')
 
